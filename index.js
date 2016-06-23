@@ -1,5 +1,5 @@
-
-var NativeCustomEvent = global.CustomEvent;
+var globalObject = require('global-object');
+var NativeCustomEvent = globalObject.CustomEvent;
 
 function useNative () {
   try {
@@ -18,31 +18,37 @@ function useNative () {
  * @public
  */
 
-module.exports = useNative() ? NativeCustomEvent :
-
-// IE >= 9
-'function' === typeof document.createEvent ? function CustomEvent (type, params) {
-  var e = document.createEvent('CustomEvent');
-  if (params) {
-    e.initCustomEvent(type, params.bubbles, params.cancelable, params.detail);
-  } else {
-    e.initCustomEvent(type, false, false, void 0);
+var CustomEvent;
+if (useNative()) {
+  CustomEvent = NativeCustomEvent;
+} else if (!globalObject.document) {
+  CustomEvent = undefined;
+} else if ('function' === typeof globalObject.document.createEvent) {
+  // IE >= 9
+  CustomEvent = function (type, params) {
+    var e = globalObject.document.createEvent('CustomEvent');
+    if (params) {
+      e.initCustomEvent(type, params.bubbles, params.cancelable, params.detail);
+    } else {
+      e.initCustomEvent(type, false, false, void 0);
+    }
+    return e;
   }
-  return e;
-} :
-
-// IE <= 8
-function CustomEvent (type, params) {
-  var e = document.createEventObject();
-  e.type = type;
-  if (params) {
-    e.bubbles = Boolean(params.bubbles);
-    e.cancelable = Boolean(params.cancelable);
-    e.detail = params.detail;
-  } else {
-    e.bubbles = false;
-    e.cancelable = false;
-    e.detail = void 0;
+} else {
+  // IE <= 8
+  CustomEvent = function (type, params) {
+    var e = globalObject.document.createEventObject();
+    e.type = type;
+    if (params) {
+      e.bubbles = Boolean(params.bubbles);
+      e.cancelable = Boolean(params.cancelable);
+      e.detail = params.detail;
+    } else {
+      e.bubbles = false;
+      e.cancelable = false;
+      e.detail = void 0;
+    }
+    return e;
   }
-  return e;
 }
+module.exports = CustomEvent;
